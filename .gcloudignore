@@ -1,0 +1,9 @@
+.gcloudignore
+node_modules/
+npm-debug.log
+.git
+.gitignore
+.env
+bot_data.db
+__pycache__/
+*.pyc

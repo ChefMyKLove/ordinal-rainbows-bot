@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BSV Ordinals Discord Verification</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .message-box {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+        
+        .message-box strong {
+            color: #667eea;
+            display: block;
+            margin-bottom: 10px;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        
+        .wallet-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+        
+        .wallet-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .wallet-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .wallet-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .result-box label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .result-box input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .copy-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .copy-btn:hover {
+            background: #218838;
+        }
+        
+        .instructions {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #856404;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌈 RAINBOWS Verification</h1>
+        <p class="subtitle">Connect your BSV wallet to verify Discord ownership</p>
+        
+        <div class="message-box">
+            <strong>Message to Sign:</strong>
+            <div id="message">Loading...</div>
+        </div>
+        
+        <div class="wallet-buttons">
+            <button class="wallet-btn" onclick="signWithYours()">
+                📱 Yours Wallet
+            </button>
+            <button class="wallet-btn" onclick="signWithPanda()">
+                🐼 Panda Wallet
+            </button>
+            <button class="wallet-btn" onclick="signWithHandCash()">
+                ✋ HandCash
+            </button>
+        </div>
+        
+        <div id="status" class="status"></div>
+        
+        <div id="result" class="result-box">
+            <div style="margin-bottom: 15px;">
+                <label>Your Address:</label>
+                <input type="text" id="addressResult" readonly>
+                <button class="copy-btn" onclick="copyToClipboard('addressResult')">Copy</button>
+            </div>
+            <div>
+                <label>Signature:</label>
+                <input type="text" id="signatureResult" readonly>
+                <button class="copy-btn" onclick="copyToClipboard('signatureResult')">Copy</button>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <strong>📝 Next Steps:</strong>
+            <ol>
+                <li>Click your wallet button above</li>
+                <li>Approve the signature request in your wallet</li>
+                <li>Copy your address and signature</li>
+                <li>Return to Discord and use: <code>/submit [address] [signature]</code></li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Get message from URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const message = urlParams.get('message') || urlParams.get('m');
+        
+        if (message) {
+            document.getElementById('message').textContent = message;
+            // Store in localStorage for persistence
+            localStorage.setItem('verify_message', message);
+        } else {
+            // Try to load from localStorage
+            const stored = localStorage.getItem('verify_message');
+            if (stored) {
+                document.getElementById('message').textContent = stored;
+            } else {
+                document.getElementById('message').textContent = 'Error: No message provided';
+            }
+        }
+        
+        function showStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            statusEl.style.display = 'block';
+        }
+        
+        function showResult(address, signature) {
+            document.getElementById('addressResult').value = address;
+            document.getElementById('signatureResult').value = signature;
+            document.getElementById('result').style.display = 'block';
+        }
+        
+        async function signWithYours() {
+            showStatus('Connecting to Yours Wallet...', 'info');
+            
+            try {
+                if (typeof window.yours === 'undefined') {
+                    throw new Error('Yours Wallet not detected. Please install it first.');
+                }
+                
+                const message = document.getElementById('message').textContent;
+                
+                // Get address
+                const addresses = await window.yours.getAddresses();
+                const address = addresses.bsvAddress;
+                
+                // Sign message
+                const signature = await window.yours.signMessage({
+                    message: message,
+                    encoding: 'utf8'
+                });
+                
+                showStatus('✅ Successfully signed with Yours Wallet!', 'success');
+                showResult(address, signature.sig);
+                
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function signWithPanda() {
+            showStatus('Connecting to Panda Wallet...', 'info');
+            
+            try {
+                if (typeof window.panda === 'undefined') {
+                    throw new Error('Panda Wallet not detected. Please install it first.');
+                }
+                
+                const message = document.getElementById('message').textContent;
+                
+                // Get address
+                const address = await window.panda.getAddress();
+                
+                // Sign message
+                const signature = await window.panda.signMessage({
+                    message: message
+                });
+                
+                showStatus('✅ Successfully signed with Panda Wallet!', 'success');
+                showResult(address, signature);
+                
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function signWithHandCash() {
+            showStatus('Connecting to HandCash...', 'info');
+            
+            try {
+                if (typeof window.handcash === 'undefined') {
+                    throw new Error('HandCash not detected. Please install it first.');
+                }
+                
+                const message = document.getElementById('message').textContent;
+                
+                // Get address
+                const profile = await window.handcash.getProfile();
+                const address = profile.publicProfile.paymail;
+                
+                // Sign message
+                const signature = await window.handcash.signMessage({
+                    message: message
+                });
+                
+                showStatus('✅ Successfully signed with HandCash!', 'success');
+                showResult(address, signature.signature);
+                
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            element.select();
+            document.execCommand('copy');
+            
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
