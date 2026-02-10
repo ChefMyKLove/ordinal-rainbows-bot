@@ -620,4 +620,27 @@ async def stats(interaction: discord.Interaction):
 
 if __name__ == "__main__":
     print("🚀 Starting BSV Ordinals Discord Bot...")
-    bot.run(config.BOT_TOKEN)
+   import asyncio
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import threading
+
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b'Bot is running')
+    
+    def log_message(self, format, *args):
+        pass  # Suppress logs
+
+def run_http_server():
+    server = HTTPServer(('0.0.0.0', 8080), HealthCheckHandler)
+    server.serve_forever()
+
+# Start HTTP server in background thread
+http_thread = threading.Thread(target=run_http_server, daemon=True)
+http_thread.start()
+
+# Run Discord bot
+bot.run(config.BOT_TOKEN)
