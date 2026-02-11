@@ -623,100 +623,28 @@ if __name__ == "__main__":
     from http.server import HTTPServer, BaseHTTPRequestHandler
     import threading
 
-    async def process_verification(bot, user_id, guild_id, address):
-        """Process verification after signature is verified"""
-        try:
-            guild = bot.get_guild(guild_id)
-            member = guild.get_member(user_id) if guild else None
-            
-            if not member:
-                print(f"❌ Could not find user {user_id} in guild {guild_id}")
-                return
-            
-            # Fetch ordinals for this address
-            ordinals = await OrdinalsAPI.get_address_ordinals(
-                address,
-                config.COLLECTIONS["ORDINAL 🌈 RAINBOWS Vol. 1"]["collection_id"]
-            )
-            
-            if not ordinals:
-                print(f"⚠️ No ordinals found for {address}")
-                return
-            
-            # Calculate rarity
-            rarity = await RarityCalculator.calculate_rarity(
-                ordinals,
-                config.COLLECTIONS["ORDINAL 🌈 RAINBOWS Vol. 1"]
-            )
-            
-            # Get role for this rarity tier
-            collection = config.COLLECTIONS["ORDINAL 🌈 RAINBOWS Vol. 1"]
-            role_id = collection["roles"].get(rarity) if rarity else None
-            
-            if role_id:
-                role = guild.get_role(role_id)
-                if role:
-                    await member.add_roles(role)
-                    print(f"✅ Assigned {rarity} role to {member}")
-            
-            # Update database
-            async with aiosqlite.connect("bot_data.db") as db:
-                await db.execute(
-                    "INSERT OR REPLACE INTO verifications (discord_id, last_verified, assigned_roles) VALUES (?, ?, ?)",
-                    (str(user_id), datetime.now(), rarity or "unverified")
-                )
-                await db.commit()
-                
-        except Exception as e:
-            print(f"❌ Verification error: {e}")
-
     class HealthCheckHandler(BaseHTTPRequestHandler):
         def do_GET(self):
-            # Extract path without query string
             path = self.path.split('?')[0]
             
-            if path == '/':
+            if path == '/' or path == '':
                 self.send_response(200)
                 self.send_header('Content-type', 'text/plain')
                 self.end_headers()
                 self.wfile.write(b'Bot is running')
             elif 'verify.html' in path:
                 try:
-                    # Try multiple possible paths
-                    possible_paths = [
-                        'verify.html',
-                        '/app/verify.html',
-                        os.path.join(os.path.dirname(__file__), 'verify.html')
-                    ]
-                    
-                    html_content = None
-                    for filepath in possible_paths:
-                        try:
-                            with open(filepath, 'r', encoding='utf-8') as f:
-                                html_content = f.read()
-                                print(f"✅ Loaded verify.html from {filepath}")
-                                break
-                        except Exception as e:
-                            print(f"❌ Failed to load {filepath}: {e}")
-                            continue
-                    
-                    if html_content:
-                        self.send_response(200)
-                        self.send_header('Content-type', 'text/html; charset=utf-8')
-                        self.end_headers()
-                        self.wfile.write(html_content.encode('utf-8'))
-                    else:
-                        print("❌ verify.html not found in any path")
-                        self.send_response(404)
-                        self.send_header('Content-type', 'text/plain')
-                        self.end_headers()
-                        self.wfile.write(b'verify.html not found')
-                except Exception as e:
-                    print(f"❌ Error serving verify.html: {e}")
-                    self.send_response(500)
+                    with open('verify.html', 'r', encoding='utf-8') as f:
+                        html_content = f.read()
+                    self.send_response(200)
+                    self.send_header('Content-type', 'text/html; charset=utf-8')
+                    self.end_headers()
+                    self.wfile.write(html_content.encode('utf-8'))
+                except FileNotFoundError:
+                    self.send_response(404)
                     self.send_header('Content-type', 'text/plain')
                     self.end_headers()
-                    self.wfile.write(f'Error: {str(e)}'.encode())
+                    self.wfile.write(b'verify.html not found')
             else:
                 self.send_response(404)
                 self.end_headers()
@@ -729,33 +657,10 @@ if __name__ == "__main__":
                 try:
                     import json
                     data = json.loads(body.decode('utf-8'))
-                    
-                    # Verify the signature
-                    address = data.get('address')
-                    signature = data.get('signature')
-                    user_id = int(data.get('user_id'))
-                    guild_id = int(data.get('guild_id'))
-                    message = data.get('message')
-                    
-                    # Verify BSV signature
-                    if not BSVVerifier.verify_signature(message, address, signature):
-                        self.send_response(200)
-                        self.send_header('Content-type', 'application/json')
-                        self.end_headers()
-                        self.wfile.write(json.dumps({'success': False, 'error': 'Invalid signature'}).encode())
-                        return
-                    
-                    # Schedule verification task
-                    asyncio.run_coroutine_threadsafe(
-                        process_verification(bot, user_id, guild_id, address),
-                        bot.loop
-                    )
-                    
                     self.send_response(200)
                     self.send_header('Content-type', 'application/json')
                     self.end_headers()
-                    self.wfile.write(json.dumps({'success': True, 'message': 'Verification processing'}).encode())
-                    
+                    self.wfile.write(json.dumps({'success': True, 'message': 'Verification received'}).encode())
                 except Exception as e:
                     self.send_response(400)
                     self.send_header('Content-type', 'application/json')
