@@ -679,17 +679,39 @@ if __name__ == "__main__":
                 self.wfile.write(b'Bot is running')
             elif self.path == '/verify.html' or self.path.startswith('/verify.html?'):
                 try:
-                    with open('verify.html', 'r') as f:
-                        content = f.read()
-                    self.send_response(200)
-                    self.send_header('Content-type', 'text/html')
-                    self.end_headers()
-                    self.wfile.write(content.encode())
-                except FileNotFoundError:
-                    self.send_response(404)
+                    # Try multiple possible paths
+                    possible_paths = [
+                        'verify.html',
+                        '/app/verify.html',
+                        '/workspace/verify.html',
+                        os.path.join(os.path.dirname(__file__), 'verify.html')
+                    ]
+                    
+                    html_content = None
+                    for path in possible_paths:
+                        try:
+                            with open(path, 'r') as f:
+                                html_content = f.read()
+                                break
+                        except:
+                            continue
+                    
+                    if html_content:
+                        # Preserve query parameters in the HTML
+                        self.send_response(200)
+                        self.send_header('Content-type', 'text/html; charset=utf-8')
+                        self.end_headers()
+                        self.wfile.write(html_content.encode('utf-8'))
+                    else:
+                        self.send_response(404)
+                        self.send_header('Content-type', 'text/plain')
+                        self.end_headers()
+                        self.wfile.write(b'verify.html not found in any path')
+                except Exception as e:
+                    self.send_response(500)
                     self.send_header('Content-type', 'text/plain')
                     self.end_headers()
-                    self.wfile.write(b'verify.html not found')
+                    self.wfile.write(f'Error: {str(e)}'.encode())
             else:
                 self.send_response(404)
                 self.end_headers()
