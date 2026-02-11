@@ -672,42 +672,47 @@ if __name__ == "__main__":
 
     class HealthCheckHandler(BaseHTTPRequestHandler):
         def do_GET(self):
-            if self.path == '/':
+            # Extract path without query string
+            path = self.path.split('?')[0]
+            
+            if path == '/':
                 self.send_response(200)
                 self.send_header('Content-type', 'text/plain')
                 self.end_headers()
                 self.wfile.write(b'Bot is running')
-            elif self.path == '/verify.html' or self.path.startswith('/verify.html?'):
+            elif 'verify.html' in path:
                 try:
                     # Try multiple possible paths
                     possible_paths = [
                         'verify.html',
                         '/app/verify.html',
-                        '/workspace/verify.html',
                         os.path.join(os.path.dirname(__file__), 'verify.html')
                     ]
                     
                     html_content = None
-                    for path in possible_paths:
+                    for filepath in possible_paths:
                         try:
-                            with open(path, 'r') as f:
+                            with open(filepath, 'r', encoding='utf-8') as f:
                                 html_content = f.read()
+                                print(f"✅ Loaded verify.html from {filepath}")
                                 break
-                        except:
+                        except Exception as e:
+                            print(f"❌ Failed to load {filepath}: {e}")
                             continue
                     
                     if html_content:
-                        # Preserve query parameters in the HTML
                         self.send_response(200)
                         self.send_header('Content-type', 'text/html; charset=utf-8')
                         self.end_headers()
                         self.wfile.write(html_content.encode('utf-8'))
                     else:
+                        print("❌ verify.html not found in any path")
                         self.send_response(404)
                         self.send_header('Content-type', 'text/plain')
                         self.end_headers()
-                        self.wfile.write(b'verify.html not found in any path')
+                        self.wfile.write(b'verify.html not found')
                 except Exception as e:
+                    print(f"❌ Error serving verify.html: {e}")
                     self.send_response(500)
                     self.send_header('Content-type', 'text/plain')
                     self.end_headers()
