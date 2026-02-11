@@ -402,16 +402,25 @@ async def verify(interaction: discord.Interaction):
         'timestamp': datetime.now()
     }
     
+    # Create a button that opens the wallet signing page
+    class VerifyButton(discord.ui.View):
+        @discord.ui.button(label="🔐 Sign with Wallet", style=discord.ButtonStyle.primary)
+        async def sign_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+            # Build the verification URL with message, user ID, and guild ID
+            verify_url = f"https://rainbows-bot-224418446129.us-central1.run.app/verify.html?message={message}&user_id={interaction.user.id}&guild_id={interaction.guild_id}"
+            
+            embed = discord.Embed(
+                title="🔗 Opening Wallet Signer",
+                description=f"[Click here if it doesn't open automatically]({verify_url})",
+                color=discord.Color.blue()
+            )
+            
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        
     embed = discord.Embed(
         title="🔐 BSV Ordinals Verification",
-        description="Sign this message with your BSV wallet to verify ownership",
+        description="Click the button to sign a message with your BSV wallet and verify ordinal ownership",
         color=discord.Color.blue()
-    )
-    
-    embed.add_field(
-        name="Message to Sign",
-        value=f"```{message}```",
-        inline=False
     )
     
     embed.add_field(
@@ -421,19 +430,14 @@ async def verify(interaction: discord.Interaction):
     )
     
     embed.add_field(
-        name="📝 Instructions",
-        value=(
-            "1. Open your BSV wallet\n"
-            "2. Find the 'Sign Message' feature\n"
-            "3. Sign the message above\n"
-            "4. Use `/submit <address> <signature>` to complete verification"
-        ),
+        name="📝 What Happens",
+        value="1. Click the button below\n2. Select your wallet\n3. Sign the verification message\n4. Get assigned a role automatically!",
         inline=False
     )
     
     embed.set_footer(text="⏰ This session expires in 10 minutes")
     
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed, view=VerifyButton(), ephemeral=True)
 
 @bot.tree.command(name="submit", description="Submit your signed message")
 @app_commands.describe(
@@ -619,12 +623,120 @@ if __name__ == "__main__":
     from http.server import HTTPServer, BaseHTTPRequestHandler
     import threading
 
+    async def process_verification(bot, user_id, guild_id, address):
+        """Process verification after signature is verified"""
+        try:
+            guild = bot.get_guild(guild_id)
+            member = guild.get_member(user_id) if guild else None
+            
+            if not member:
+                print(f"❌ Could not find user {user_id} in guild {guild_id}")
+                return
+            
+            # Fetch ordinals for this address
+            ordinals = await OrdinalsAPI.get_address_ordinals(
+                address,
+                config.COLLECTIONS["ORDINAL 🌈 RAINBOWS Vol. 1"]["collection_id"]
+            )
+            
+            if not ordinals:
+                print(f"⚠️ No ordinals found for {address}")
+                return
+            
+            # Calculate rarity
+            rarity = await RarityCalculator.calculate_rarity(
+                ordinals,
+                config.COLLECTIONS["ORDINAL 🌈 RAINBOWS Vol. 1"]
+            )
+            
+            # Get role for this rarity tier
+            collection = config.COLLECTIONS["ORDINAL 🌈 RAINBOWS Vol. 1"]
+            role_id = collection["roles"].get(rarity) if rarity else None
+            
+            if role_id:
+                role = guild.get_role(role_id)
+                if role:
+                    await member.add_roles(role)
+                    print(f"✅ Assigned {rarity} role to {member}")
+            
+            # Update database
+            async with aiosqlite.connect("bot_data.db") as db:
+                await db.execute(
+                    "INSERT OR REPLACE INTO verifications (discord_id, last_verified, assigned_roles) VALUES (?, ?, ?)",
+                    (str(user_id), datetime.now(), rarity or "unverified")
+                )
+                await db.commit()
+                
+        except Exception as e:
+            print(f"❌ Verification error: {e}")
+
     class HealthCheckHandler(BaseHTTPRequestHandler):
         def do_GET(self):
-            self.send_response(200)
-            self.send_header('Content-type', 'text/plain')
-            self.end_headers()
-            self.wfile.write(b'Bot is running')
+            if self.path == '/':
+                self.send_response(200)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(b'Bot is running')
+            elif self.path == '/verify.html' or self.path.startswith('/verify.html?'):
+                try:
+                    with open('verify.html', 'r') as f:
+                        content = f.read()
+                    self.send_response(200)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(content.encode())
+                except FileNotFoundError:
+                    self.send_response(404)
+                    self.send_header('Content-type', 'text/plain')
+                    self.end_headers()
+                    self.wfile.write(b'verify.html not found')
+            else:
+                self.send_response(404)
+                self.end_headers()
+        
+        def do_POST(self):
+            if self.path == '/api/verify':
+                content_length = int(self.headers.get('Content-Length', 0))
+                body = self.rfile.read(content_length)
+                
+                try:
+                    import json
+                    data = json.loads(body.decode('utf-8'))
+                    
+                    # Verify the signature
+                    address = data.get('address')
+                    signature = data.get('signature')
+                    user_id = int(data.get('user_id'))
+                    guild_id = int(data.get('guild_id'))
+                    message = data.get('message')
+                    
+                    # Verify BSV signature
+                    if not BSVVerifier.verify_signature(message, address, signature):
+                        self.send_response(200)
+                        self.send_header('Content-type', 'application/json')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({'success': False, 'error': 'Invalid signature'}).encode())
+                        return
+                    
+                    # Schedule verification task
+                    asyncio.run_coroutine_threadsafe(
+                        process_verification(bot, user_id, guild_id, address),
+                        bot.loop
+                    )
+                    
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'success': True, 'message': 'Verification processing'}).encode())
+                    
+                except Exception as e:
+                    self.send_response(400)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'success': False, 'error': str(e)}).encode())
+            else:
+                self.send_response(404)
+                self.end_headers()
         
         def log_message(self, format, *args):
             pass  # Suppress logs

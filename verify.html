@@ -273,8 +273,8 @@
                     encoding: 'utf8'
                 });
                 
-                showStatus('✅ Successfully signed with Yours Wallet!', 'success');
-                showResult(address, signature.sig);
+                showStatus('✅ Successfully signed! Submitting to bot...', 'success');
+                await submitVerification(address, signature.sig);
                 
             } catch (error) {
                 showStatus(`❌ Error: ${error.message}`, 'error');
@@ -299,8 +299,8 @@
                     message: message
                 });
                 
-                showStatus('✅ Successfully signed with Panda Wallet!', 'success');
-                showResult(address, signature);
+                showStatus('✅ Successfully signed! Submitting to bot...', 'success');
+                await submitVerification(address, signature);
                 
             } catch (error) {
                 showStatus(`❌ Error: ${error.message}`, 'error');
@@ -326,11 +326,49 @@
                     message: message
                 });
                 
-                showStatus('✅ Successfully signed with HandCash!', 'success');
-                showResult(address, signature.signature);
+                showStatus('✅ Successfully signed! Submitting to bot...', 'success');
+                await submitVerification(address, signature.signature);
                 
             } catch (error) {
                 showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function submitVerification(address, signature) {
+            const userID = urlParams.get('user_id') || urlParams.get('uid');
+            const guildID = urlParams.get('guild_id') || urlParams.get('gid');
+            const message = document.getElementById('message').textContent;
+            
+            if (!userID || !guildID) {
+                showStatus('❌ Error: Missing Discord info. Please use the /verify command.', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        address: address,
+                        signature: signature,
+                        user_id: userID,
+                        guild_id: guildID,
+                        message: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatus('✅ Verification successful! You can close this window.', 'success');
+                    document.getElementById('result').style.display = 'none';
+                } else {
+                    showStatus(`❌ Verification failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`❌ Network error: ${error.message}`, 'error');
             }
         }
         
