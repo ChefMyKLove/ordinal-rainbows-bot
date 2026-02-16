@@ -204,6 +204,9 @@ async def on_ready():
 
 @bot.tree.command(name="verify", description="Verify your BSV ordinal ownership")
 async def verify(interaction: discord.Interaction):
+    """Start verification process with wallet signing"""
+    
+    # Check rate limit
     async with aiosqlite.connect("bot_data.db") as db:
         hour_ago = datetime.now() - timedelta(hours=1)
         cursor = await db.execute(
@@ -219,6 +222,7 @@ async def verify(interaction: discord.Interaction):
             )
             return
     
+    # Generate verification nonce
     nonce = secrets.token_hex(16)
     message = f"Discord_Verify_{int(datetime.now().timestamp())}_{nonce}"
     
@@ -228,16 +232,25 @@ async def verify(interaction: discord.Interaction):
         'timestamp': datetime.now()
     }
     
+    # Create a button that opens the wallet signing page
+    class VerifyButton(discord.ui.View):
+        @discord.ui.button(label="🔐 Sign with Wallet", style=discord.ButtonStyle.primary)
+        async def sign_button(self, button_interaction: discord.Interaction, button: discord.ui.Button):
+            # Build the verification URL
+            verify_url = f"https://rainbows-bot-224418446129.us-central1.run.app/verify.html?message={message}&user_id={button_interaction.user.id}&guild_id={button_interaction.guild_id}"
+            
+            embed = discord.Embed(
+                title="🔗 Opening Wallet Signer",
+                description=f"[Click here if popup doesn't open]({verify_url})",
+                color=discord.Color.blue()
+            )
+            
+            await button_interaction.response.send_message(embed=embed, ephemeral=True)
+    
     embed = discord.Embed(
         title="🔐 BSV Ordinals Verification",
-        description="Sign this message with your BSV wallet to verify ownership",
+        description="Click the button to sign with your wallet and verify ordinal ownership",
         color=discord.Color.blue()
-    )
-    
-    embed.add_field(
-        name="Message to Sign",
-        value=f"```{message}```",
-        inline=False
     )
     
     embed.add_field(
@@ -247,19 +260,14 @@ async def verify(interaction: discord.Interaction):
     )
     
     embed.add_field(
-        name="📝 Next Steps",
-        value=(
-            "1. Open your BSV wallet\n"
-            "2. Find 'Sign Message' feature\n"
-            "3. Sign the message above\n"
-            "4. Use `/submit <address> <signature>`"
-        ),
+        name="📝 What Happens",
+        value="1. Click the button\n2. Select your wallet\n3. Sign the message\n4. Get assigned a role!",
         inline=False
     )
     
-    embed.set_footer(text="⏰ Expires in 10 minutes")
+    embed.set_footer(text="⏰ This session expires in 10 minutes")
     
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed, view=VerifyButton(), ephemeral=True)
 
 @bot.tree.command(name="submit", description="Submit your signed message")
 @app_commands.describe(
