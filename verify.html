@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BSV Ordinals Discord Verification</title>
+    <title>BSV Ordinals Verification</title>
     <style>
         * {
             margin: 0;
@@ -25,9 +25,10 @@
             background: white;
             border-radius: 20px;
             padding: 40px;
-            max-width: 600px;
+            max-width: 500px;
             width: 100%;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
         }
         
         h1 {
@@ -42,51 +43,28 @@
             font-size: 14px;
         }
         
-        .message-box {
+        .wallet-info {
             background: #f8f9fa;
-            border: 2px solid #e9ecef;
             border-radius: 10px;
             padding: 20px;
             margin: 20px 0;
-            font-family: 'Courier New', monospace;
-            word-break: break-all;
         }
         
-        .message-box strong {
-            color: #667eea;
-            display: block;
+        .wallet-icon {
+            font-size: 48px;
             margin-bottom: 10px;
-            font-family: 'Segoe UI', sans-serif;
         }
         
-        .wallet-buttons {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin: 30px 0;
-        }
-        
-        .wallet-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 15px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 16px;
+        .wallet-name {
+            font-size: 20px;
             font-weight: 600;
-            transition: transform 0.2s, box-shadow 0.2s;
+            color: #333;
+            margin-bottom: 5px;
         }
         
-        .wallet-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-        
-        .wallet-btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
+        .wallet-status {
+            font-size: 12px;
+            color: #999;
         }
         
         .status {
@@ -94,6 +72,13 @@
             padding: 15px;
             border-radius: 10px;
             display: none;
+            font-size: 14px;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
         }
         
         .status.success {
@@ -108,137 +93,95 @@
             border: 1px solid #f5c6cb;
         }
         
-        .status.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-        
-        .result-box {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            display: none;
-        }
-        
-        .result-box label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #495057;
-        }
-        
-        .result-box input {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #e9ecef;
-            border-radius: 5px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-        }
-        
-        .copy-btn {
-            background: #28a745;
+        .sign-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-top: 10px;
-            font-size: 14px;
-        }
-        
-        .copy-btn:hover {
-            background: #218838;
-        }
-        
-        .instructions {
-            background: #fff3cd;
-            border: 1px solid #ffeeba;
+            padding: 15px 40px;
             border-radius: 10px;
-            padding: 15px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
             margin-top: 20px;
-            font-size: 14px;
-            color: #856404;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
         }
         
-        .instructions ol {
-            margin-left: 20px;
-            margin-top: 10px;
+        .sign-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
         
-        .instructions li {
-            margin-bottom: 8px;
+        .sign-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🌈 RAINBOWS Verification</h1>
-        <p class="subtitle">Connect your BSV wallet to verify Discord ownership</p>
+        <p class="subtitle">Connect your BSV wallet to verify ownership</p>
         
-        <div class="message-box">
-            <strong>Message to Sign:</strong>
-            <div id="message">Loading...</div>
+        <div class="wallet-info" id="walletInfo">
+            <div class="wallet-icon" id="walletIcon">🔍</div>
+            <div class="wallet-name" id="walletName">Detecting wallets...</div>
+            <div class="wallet-status" id="walletStatus">Please wait</div>
         </div>
         
-        <div class="wallet-buttons">
-            <button class="wallet-btn" onclick="signWithYours()">
-                📱 Yours Wallet
-            </button>
-            <button class="wallet-btn" onclick="signWithPanda()">
-                🐼 Panda Wallet
-            </button>
-            <button class="wallet-btn" onclick="signWithHandCash()">
-                ✋ HandCash
-            </button>
-        </div>
+        <button class="sign-btn" id="signBtn" onclick="signWithDetectedWallet()" disabled>
+            Sign with Wallet
+        </button>
         
         <div id="status" class="status"></div>
-        
-        <div id="result" class="result-box">
-            <div style="margin-bottom: 15px;">
-                <label>Your Address:</label>
-                <input type="text" id="addressResult" readonly>
-                <button class="copy-btn" onclick="copyToClipboard('addressResult')">Copy</button>
-            </div>
-            <div>
-                <label>Signature:</label>
-                <input type="text" id="signatureResult" readonly>
-                <button class="copy-btn" onclick="copyToClipboard('signatureResult')">Copy</button>
-            </div>
-        </div>
-        
-        <div class="instructions">
-            <strong>📝 Next Steps:</strong>
-            <ol>
-                <li>Click your wallet button above</li>
-                <li>Approve the signature request in your wallet</li>
-                <li>Copy your address and signature</li>
-                <li>Return to Discord and use: <code>/submit [address] [signature]</code></li>
-            </ol>
-        </div>
     </div>
 
     <script>
-        // Get message from URL params
         const urlParams = new URLSearchParams(window.location.search);
         const message = urlParams.get('message') || urlParams.get('m');
+        const userID = urlParams.get('user_id') || urlParams.get('uid');
+        const guildID = urlParams.get('guild_id') || urlParams.get('gid');
         
-        if (message) {
-            document.getElementById('message').textContent = message;
-            // Store in localStorage for persistence
-            localStorage.setItem('verify_message', message);
-        } else {
-            // Try to load from localStorage
-            const stored = localStorage.getItem('verify_message');
-            if (stored) {
-                document.getElementById('message').textContent = stored;
-            } else {
-                document.getElementById('message').textContent = 'Error: No message provided';
+        let detectedWallet = null;
+        
+        // Wallet detection list
+        const wallets = [
+            {
+                name: 'Yours Wallet',
+                icon: '📱',
+                detect: () => typeof window.yours !== 'undefined',
+                sign: signWithYours
+            },
+            {
+                name: 'Panda Wallet',
+                icon: '🐼',
+                detect: () => typeof window.panda !== 'undefined',
+                sign: signWithPanda
+            },
+            {
+                name: 'HandCash',
+                icon: '✋',
+                detect: () => typeof window.handcash !== 'undefined',
+                sign: signWithHandCash
             }
-        }
+        ];
         
         function showStatus(message, type = 'info') {
             const statusEl = document.getElementById('status');
@@ -247,104 +190,91 @@
             statusEl.style.display = 'block';
         }
         
-        function showResult(address, signature) {
-            document.getElementById('addressResult').value = address;
-            document.getElementById('signatureResult').value = signature;
-            document.getElementById('result').style.display = 'block';
+        async function detectWallets() {
+            // Wait a bit for wallet scripts to load
+            await new Promise(r => setTimeout(r, 500));
+            
+            for (const wallet of wallets) {
+                if (wallet.detect()) {
+                    detectedWallet = wallet;
+                    document.getElementById('walletIcon').textContent = wallet.icon;
+                    document.getElementById('walletName').textContent = wallet.name;
+                    document.getElementById('walletStatus').textContent = 'Detected ✓';
+                    document.getElementById('signBtn').disabled = false;
+                    return;
+                }
+            }
+            
+            // No wallet detected
+            document.getElementById('walletName').textContent = 'No wallet detected';
+            document.getElementById('walletStatus').textContent = 'Please install Yours, Panda, or HandCash wallet';
+            showStatus('❌ No BSV wallet detected. Please install a wallet extension.', 'error');
+        }
+        
+        async function signWithDetectedWallet() {
+            if (!detectedWallet || !message || !userID || !guildID) {
+                showStatus('❌ Error: Missing wallet or Discord information', 'error');
+                return;
+            }
+            
+            document.getElementById('signBtn').disabled = true;
+            showStatus('🔐 Signing with ' + detectedWallet.name + '...', 'info');
+            
+            await detectedWallet.sign();
         }
         
         async function signWithYours() {
-            showStatus('Connecting to Yours Wallet...', 'info');
-            
             try {
-                if (typeof window.yours === 'undefined') {
-                    throw new Error('Yours Wallet not detected. Please install it first.');
-                }
-                
-                const message = document.getElementById('message').textContent;
-                
-                // Get address
                 const addresses = await window.yours.getAddresses();
                 const address = addresses.bsvAddress;
                 
-                // Sign message
                 const signature = await window.yours.signMessage({
                     message: message,
                     encoding: 'utf8'
                 });
                 
-                showStatus('✅ Successfully signed! Submitting to bot...', 'success');
                 await submitVerification(address, signature.sig);
-                
             } catch (error) {
                 showStatus(`❌ Error: ${error.message}`, 'error');
+                document.getElementById('signBtn').disabled = false;
             }
         }
         
         async function signWithPanda() {
-            showStatus('Connecting to Panda Wallet...', 'info');
-            
             try {
-                if (typeof window.panda === 'undefined') {
-                    throw new Error('Panda Wallet not detected. Please install it first.');
-                }
-                
-                const message = document.getElementById('message').textContent;
-                
-                // Get address
                 const address = await window.panda.getAddress();
                 
-                // Sign message
                 const signature = await window.panda.signMessage({
                     message: message
                 });
                 
-                showStatus('✅ Successfully signed! Submitting to bot...', 'success');
                 await submitVerification(address, signature);
-                
             } catch (error) {
                 showStatus(`❌ Error: ${error.message}`, 'error');
+                document.getElementById('signBtn').disabled = false;
             }
         }
         
         async function signWithHandCash() {
-            showStatus('Connecting to HandCash...', 'info');
-            
             try {
-                if (typeof window.handcash === 'undefined') {
-                    throw new Error('HandCash not detected. Please install it first.');
-                }
-                
-                const message = document.getElementById('message').textContent;
-                
-                // Get address
                 const profile = await window.handcash.getProfile();
                 const address = profile.publicProfile.paymail;
                 
-                // Sign message
                 const signature = await window.handcash.signMessage({
                     message: message
                 });
                 
-                showStatus('✅ Successfully signed! Submitting to bot...', 'success');
                 await submitVerification(address, signature.signature);
-                
             } catch (error) {
                 showStatus(`❌ Error: ${error.message}`, 'error');
+                document.getElementById('signBtn').disabled = false;
             }
         }
         
         async function submitVerification(address, signature) {
-            const userID = urlParams.get('user_id') || urlParams.get('uid');
-            const guildID = urlParams.get('guild_id') || urlParams.get('gid');
-            const message = document.getElementById('message').textContent;
-            
-            if (!userID || !guildID) {
-                showStatus('❌ Error: Missing Discord info. Please use the /verify command.', 'error');
-                return;
-            }
-            
             try {
+                showStatus('📤 Submitting verification...', 'info');
+                
                 const response = await fetch('/api/verify', {
                     method: 'POST',
                     headers: {
@@ -362,28 +292,23 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    showStatus('✅ Verification successful! You can close this window.', 'success');
-                    document.getElementById('result').style.display = 'none';
+                    showStatus('✅ Verified! You can close this window now.', 'success');
+                    // Auto-close after 2 seconds
+                    setTimeout(() => {
+                        window.close();
+                    }, 2000);
                 } else {
                     showStatus(`❌ Verification failed: ${data.error}`, 'error');
+                    document.getElementById('signBtn').disabled = false;
                 }
             } catch (error) {
                 showStatus(`❌ Network error: ${error.message}`, 'error');
+                document.getElementById('signBtn').disabled = false;
             }
         }
         
-        function copyToClipboard(elementId) {
-            const element = document.getElementById(elementId);
-            element.select();
-            document.execCommand('copy');
-            
-            const btn = event.target;
-            const originalText = btn.textContent;
-            btn.textContent = 'Copied!';
-            setTimeout(() => {
-                btn.textContent = originalText;
-            }, 2000);
-        }
+        // Start wallet detection when page loads
+        window.addEventListener('load', detectWallets);
     </script>
 </body>
 </html>
