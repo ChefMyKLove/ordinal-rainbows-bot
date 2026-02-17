@@ -465,4 +465,6 @@ if __name__ == "__main__":
     print("🚀 Starting BSV Ordinals Discord Bot...")
     asyncio.run(main())
 
-    
+      CMD ["python", "bot.py"]
+
+ 
